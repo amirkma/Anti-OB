@@ -3,8 +3,8 @@ main = "anti_ob_worker.js"
 compatibility_date = "2025-08-20"
 
 [triggers]
-schedule = "0 */12 * * *"  # پیام دوره‌ای هر ۱۲ ساعت
+schedule = "0 */12 * * *"
 
 [kv_namespaces]
-[binding = "CHAT_IDS"]
-id = "YOUR_KV_NAMESPACE_ID"  # بعداً تو داشبورد Cloudflare تنظیم کن
+  [kv_namespaces.CHAT_IDS]
+  id = "YOUR_KV_NAMESPACE_ID"
