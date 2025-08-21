@@ -1,7 +1,7 @@
 const TELEGRAM_API = 'https://api.telegram.org/bot';
 const BOT_TOKEN = ''; // توکن ربات
 const WEBHOOK_URL = ''; // URL کلادفلر ورکر
-const BOT_ID = 8436981924; // ID ربات از توکن
+const BOT_ID = ; // ID ربات از توکن
 
 // آرایه فحش‌های رندوم
 const insults = [
@@ -18,6 +18,7 @@ const insults = [
   'کون لقّت 🤬',
   'بی‌ناموس بی‌شرف 🤬',
   'جرت میدم بچه کص 🤬',
+  ' بجه کونی سیکتیر کن🤬',
 ];
 
 // تابع برای انتخاب فحش رندوم
@@ -247,7 +248,7 @@ async function handleRequest(request) {
 - سیکتیر (ریپلای به پیام کاربر): بن کردن کاربر (فقط ادمین)
 - /mute (ریپلای به پیام کاربر): خفه کردن کاربر برای 24 ساعت (فقط ادمین)
 - /unmute (ریپلای به پیام کاربر): رفع خفگی کاربر (فقط ادمین)
-هر 15 دقیقه یکی رو تگ می‌کنم و فحش میدم (اگر KV تنظیم شده باشه) ${getRandomInsult()}`;
+ کیرم کلفته میتونی گریه کنی هر 15 دقیقه یکی رو تگ می‌کنم و فحش میدم  ${getRandomInsult()}`;
         await sendMessage(chatId, helpText);
         return new Response('OK', { status: 200 });
       }
@@ -264,6 +265,38 @@ async function handleRequest(request) {
         return new Response('OK', { status: 200 });
       }
 
+      if (text.toLowerCase() === 'کص ننت') {
+        await sendMessage(chatId, ` کیر بلند قامتم دست ننت ${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
+      if (text.toLowerCase() === 'سلام') {
+        await sendMessage(chatId, ` من اینجا پول هاست ندادن بیام بهت سلام بدم پس سیکتیر کن${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
+      if (text.toLowerCase() === 'کونی') {
+        await sendMessage(chatId, ` بخور بستنی نونی زن ج...${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
+      if (text.toLowerCase() === 'مادرجنده') {
+        await sendMessage(chatId, ` کیر تو کص ناموست مادری${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
+      if (text.toLowerCase() === 'ننت جندست') {
+        await sendMessage(chatId, ` کیر خر تو کص مادرت${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
+      if (text.toLowerCase() === 'کیر') {
+        await sendMessage(chatId, ` غذای ننت ؟${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
+      if (text.toLowerCase() === 'kir') {
+        await sendMessage(chatId, ` غذای ننت ؟${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
+      if (text.toLowerCase() === 'KIR') {
+        await sendMessage(chatId, ` غذای ننت ؟${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
       // سیکتیر کردن با کلمه "سیکتیر" (باید ریپلای باشه)
       if (text.toLowerCase() === 'سیکتیر' && replyTo) {
         if (await isAdmin(chatId, userId)) {
@@ -327,4 +360,3 @@ async function handleRequest(request) {
   }
   return new Response('OK', { status: 200 });
 }
-
