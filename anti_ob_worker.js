@@ -1,7 +1,7 @@
 const TELEGRAM_API = 'https://api.telegram.org/bot';
 const BOT_TOKEN = ''; // توکن ربات
 const WEBHOOK_URL = ''; // URL کلادفلر ورکر
-const BOT_ID = ; // ID ربات از توکن
+const BOT_ID = ; // ID ربات از توکن اعداد اول توکن تلگرامتون
 
 // آرایه فحش‌های رندوم
 const insults = [
@@ -360,3 +360,4 @@ async function handleRequest(request) {
   }
   return new Response('OK', { status: 200 });
 }
+
