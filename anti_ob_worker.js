@@ -1,144 +1,329 @@
+const TELEGRAM_API = 'https://api.telegram.org/bot';
+const BOT_TOKEN = '8436981924:AAHvxRo0FYQdx9nrctGaDDF7pw_89l9vhpE'; // توکن ربات
+const WEBHOOK_URL = 'https://anti-obi-bot.amirrezamaleki1185.workers.dev'; // URL کلادفلر ورکر
+const BOT_ID = 8436981924; // ID ربات از توکن
+
+// آرایه فحش‌های رندوم
+const insults = [
+  'گوه تو لگبت 🤬',
+  'کص نگو چاقال 🤬',
+  'خفه شو جنده 🤬',
+  'دهنت سرویس 🤬',
+  'گمشو بچه کونی 🤬',
+  'کیرم تو کونت 🤬',
+  'چرت نگو اوسکول 🤬',
+  'فاک یو مادرجنده 🤬',
+  'خاک تو سرت 🤬',
+  'دیوث کصکش 🤬',
+  'کون لقّت 🤬',
+  'بی‌ناموس بی‌شرف 🤬',
+  'جرت میدم بچه کص 🤬',
+];
+
+// تابع برای انتخاب فحش رندوم
+function getRandomInsult() {
+  return insults[Math.floor(Math.random() * insults.length)];
+}
+
+// تابع برای ارسال پیام
+async function sendMessage(chatId, text) {
+  const url = `${TELEGRAM_API}${BOT_TOKEN}/sendMessage`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+      }),
+    });
+    if (!response.ok) {
+      console.log('Failed to send message:', await response.text());
+    }
+  } catch (e) {
+    console.log('Error sending message:', e);
+  }
+}
+
+// تابع برای بن کردن کاربر
+async function banUser(chatId, userId) {
+  const url = `${TELEGRAM_API}${BOT_TOKEN}/banChatMember`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        user_id: userId,
+      }),
+    });
+    if (!response.ok) {
+      console.log('Failed to ban user:', await response.text());
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.log('Error banning user:', e);
+    return false;
+  }
+}
+
+// تابع برای سکوت کاربر
+async function muteUser(chatId, userId) {
+  const url = `${TELEGRAM_API}${BOT_TOKEN}/restrictChatMember`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        user_id: userId,
+        permissions: {
+          can_send_messages: false,
+          can_send_media_messages: false,
+          can_send_polls: false,
+          can_send_other_messages: false,
+        },
+        until_date: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 ساعت
+      }),
+    });
+    if (!response.ok) {
+      console.log('Failed to mute user:', await response.text());
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.log('Error muting user:', e);
+    return false;
+  }
+}
+
+// تابع برای رفع سکوت کاربر
+async function unmuteUser(chatId, userId) {
+  const url = `${TELEGRAM_API}${BOT_TOKEN}/restrictChatMember`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        user_id: userId,
+        permissions: {
+          can_send_messages: true,
+          can_send_media_messages: true,
+          can_send_polls: true,
+          can_send_other_messages: true,
+        },
+      }),
+    });
+    if (!response.ok) {
+      console.log('Failed to unmute user:', await response.text());
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.log('Error unmuting user:', e);
+    return false;
+  }
+}
+
+// تابع برای چک کردن ادمین بودن کاربر
+async function isAdmin(chatId, userId) {
+  const url = `${TELEGRAM_API}${BOT_TOKEN}/getChatMember`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        user_id: userId,
+      }),
+    });
+    const data = await response.json();
+    return data.result.status === 'administrator' || data.result.status === 'creator';
+  } catch (e) {
+    console.log('Error checking admin status:', e);
+    return false;
+  }
+}
+
+// تابع برای انتخاب کاربر تصادفی (فقط اگر KV فعال باشه)
+async function getRandomUser(chatId) {
+  if (typeof USERS_KV === 'undefined') {
+    console.log('KV not configured, skipping random user selection');
+    return null;
+  }
+  try {
+    const users = JSON.parse(await USERS_KV.get(`users_${chatId}`)) || [];
+    if (users.length === 0) return null;
+    return users[Math.floor(Math.random() * users.length)];
+  } catch (e) {
+    console.log('Error accessing KV:', e);
+    return null;
+  }
+}
+
+// تابع برای به‌روزرسانی لیست کاربران در KV (فقط اگر KV فعال باشه)
+async function updateUserList(chatId, userId, username) {
+  if (typeof USERS_KV === 'undefined') {
+    console.log('KV not configured, skipping user list update');
+    return;
+  }
+  try {
+    let users = JSON.parse(await USERS_KV.get(`users_${chatId}`)) || [];
+    if (!users.some(u => u.id === userId)) {
+      users.push({ id: userId, username: username || 'ناشناس' });
+      await USERS_KV.put(`users_${chatId}`, JSON.stringify(users));
+    }
+  } catch (e) {
+    console.log('Error updating KV:', e);
+  }
+}
+
+// تابع برای به‌روزرسانی لیست چت‌های فعال (فقط اگر KV فعال باشه)
+async function updateChatList(chatId) {
+  if (typeof USERS_KV === 'undefined') {
+    console.log('KV not configured, skipping chat list update');
+    return;
+  }
+  try {
+    let chats = JSON.parse(await USERS_KV.get('active_chats')) || [];
+    if (!chats.includes(chatId)) {
+      chats.push(chatId);
+      await USERS_KV.put('active_chats', JSON.stringify(chats));
+    }
+  } catch (e) {
+    console.log('Error updating chat list:', e);
+  }
+}
+
+// تابع اصلی برای مدیریت درخواست‌ها
 addEventListener('fetch', event => {
-       event.respondWith(handleRequest(event.request));
-     });
+  event.respondWith(handleRequest(event.request));
+});
 
-     addEventListener('scheduled', event => {
-       event.waitUntil(handleScheduled(event));
-     });
+async function handleRequest(request) {
+  if (request.method === 'POST') {
+    const update = await request.json();
 
-     const TELEGRAM_TOKEN = 'YOUR_BOT_TOKEN_HERE';
-     const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY_HERE';
-     const WEBHOOK_URL = 'YOUR_CLOUDFLARE_WORKER_URL'; // بعد از دیپلوی تنظیم کن
+    // مدیریت درخواست‌های کرون (هر 15 دقیقه)
+    if (update.cron) {
+      if (typeof USERS_KV === 'undefined') {
+        console.log('KV not configured, cron skipped');
+        return new Response('Cron skipped due to missing KV', { status: 200 });
+      }
+      try {
+        const chats = JSON.parse(await USERS_KV.get('active_chats')) || [];
+        for (const chatId of chats) {
+          const randomUser = await getRandomUser(chatId);
+          if (randomUser) {
+            await sendMessage(chatId, `@${randomUser.username} ${getRandomInsult()}`);
+          }
+        }
+      } catch (e) {
+        console.log('Error in cron:', e);
+      }
+      return new Response('Cron executed', { status: 200 });
+    }
 
-     const CHAT_IDS = new KVNamespace('CHAT_IDS');
+    if (update.message) {
+      const chatId = update.message.chat.id;
+      const userId = update.message.from.id;
+      const text = update.message.text || '';
+      const username = update.message.from.username || 'ناشناس';
+      const replyTo = update.message.reply_to_message;
+      const entities = update.message.entities || [];
+      const isMentioned = entities.some(e => e.type === 'mention' && text.substring(e.offset, e.offset + e.length).toLowerCase() === '@antiobibot');
+      const isRepliedToBot = replyTo && replyTo.from.id === BOT_ID;
 
-     async function sendMessage(chatId, text) {
-       const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
-       await fetch(url, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-           chat_id: chatId,
-           text: text,
-         }),
-       });
-     }
+      // به‌روزرسانی لیست کاربران و چت‌ها در KV (اگر فعال باشه)
+      await updateUserList(chatId, userId, username);
+      await updateChatList(chatId);
 
-     async function handleScheduled(event) {
-       const chatIds = await CHAT_IDS.list();
-       for (const chat of chatIds.keys) {
-         try {
-           await sendMessage(chat.name.replace('chat_', ''), 'انتی اوبی آماده خدمته! 😎 گی تو لگبت');
-         } catch (e) {
-           console.error(`Error sending message to ${chat.name}: ${e}`);
-         }
-       }
-     }
+      // دستور /help
+      if (text === '/help') {
+        const helpText = `دستورات ربات @AntiObiBot:
+- /help: نمایش این راهنما
+- سیکتیر (ریپلای به پیام کاربر): بن کردن کاربر (فقط ادمین)
+- /mute (ریپلای به پیام کاربر): خفه کردن کاربر برای 24 ساعت (فقط ادمین)
+- /unmute (ریپلای به پیام کاربر): رفع خفگی کاربر (فقط ادمین)
+هر 15 دقیقه یکی رو تگ می‌کنم و فحش میدم (اگر KV تنظیم شده باشه) ${getRandomInsult()}`;
+        await sendMessage(chatId, helpText);
+        return new Response('OK', { status: 200 });
+      }
 
-     async function handleRequest(request) {
-       if (request.method === 'POST') {
-         const update = await request.json();
-         if (update.message) {
-           const chatId = update.message.chat.id;
-           const text = (update.message.text || '').toLowerCase();
-           const userId = update.message.from.id;
-           const username = update.message.from.username || '';
+      // پاسخ به "واقعا؟" یا "واگعن؟" یا "واقعا" یا "واگعن"
+      if (text.match(/^(واقعا\?|واگعن\?|واقعا|واگعن)$/i)) {
+        await sendMessage(chatId, `نه واگعه گوه تو... ${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
 
-           await CHAT_IDS.put(`chat_${chatId}`, chatId.toString());
+      // پاسخ به "اوبی"
+      if (text.toLowerCase() === 'اوبی') {
+        await sendMessage(chatId, `چی میخوای اوبی؟ ${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
 
-           if (text.startsWith('/start')) {
-             await sendMessage(chatId, 'سلام! من ANTI OB هستم، آماده محافظت از گپ و پاسخ به سوالات شما! 😊 گی تو لگبت\nبرای سایلنت کردن: /mute @username مدت_دقیقه\nبرای جستجوی موزیک: بنویسید "موزیک [نام]"');
-           } else if (text.startsWith('/mute') && update.message.chat.type.includes('group')) {
-             const args = text.split(' ').slice(1);
-             if (args.length < 2) {
-               await sendMessage(chatId, 'لطفاً بنویسید: /mute @username مدت_دقیقه گی تو لگبت');
-               return new Response('OK', { status: 200 });
-             }
-             const target = args[0];
-             const minutes = parseInt(args[1]);
-             if (isNaN(minutes)) {
-               await sendMessage(chatId, 'مدت زمان باید عدد باشه (به دقیقه)! گی تو لگبت');
-               return new Response('OK', { status: 200 });
-             }
-             try {
-               const targetId = await getUserIdFromMention(chatId, target);
-               if (!targetId) {
-                 await sendMessage(chatId, 'کاربر پیدا نشد یا ذکرش نکردی! گی تو لگبت');
-                 return new Response('OK', { status: 200 });
-               }
-               const untilDate = Math.floor(Date.now() / 1000) + minutes * 60;
-               await restrictChatMember(chatId, targetId, untilDate);
-               await sendMessage(chatId, `کاربر ${target} برای ${minutes} دقیقه سایلنت شد! گی تو لگبت`);
-             } catch (e) {
-               await sendMessage(chatId, 'خطایی پیش اومد! مطمئن شو که من ادمینم. گی تو لگبت');
-             }
-           } else if (text.includes('اوبی')) {
-             await sendMessage(chatId, 'بله اوبی چی می‌خوای 😏 گی تو لگبت');
-           } else if (text.includes('موزیک')) {
-             const query = text.replace('موزیک', '').trim();
-             if (query) {
-               await searchMusic(chatId, query);
-             } else {
-               await sendMessage(chatId, 'لطفاً اسم موزیک رو بعد از "موزیک" بنویسید! گی تو لگبت');
-             }
-           } else {
-             await sendMessage(chatId, 'سوال جالبی بود! 😄 چی تو سرته؟ گی تو لگبت');
-           }
-         }
-         return new Response('OK', { status: 200 });
-       }
-       return new Response('Method not allowed', { status: 405 });
-     }
+      // سیکتیر کردن با کلمه "سیکتیر" (باید ریپلای باشه)
+      if (text.toLowerCase() === 'سیکتیر' && replyTo) {
+        if (await isAdmin(chatId, userId)) {
+          const targetUserId = replyTo.from.id;
+          const targetUsername = replyTo.from.username || 'ناشناس';
+          if (await banUser(chatId, targetUserId)) {
+            await sendMessage(chatId, `@${targetUsername} سیکتیرش کردم! ${getRandomInsult()}`);
+          } else {
+            await sendMessage(chatId, `نشد سیکتیرش کنم، شاید خودم دسترسی ندارم یا کاربر ادمینه! ${getRandomInsult()}`);
+          }
+        } else {
+          await sendMessage(chatId, `تو ادمین نیستی که سیکتیر کنی! ${getRandomInsult()}`);
+        }
+        return new Response('OK', { status: 200 });
+      }
 
-     async function searchMusic(chatId, query) {
-       try {
-         const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${encodeURIComponent(query)}&key=${YOUTUBE_API_KEY}&maxResults=1`;
-         const response = await fetch(url);
-         const data = await response.json();
-         if (data.items && data.items.length > 0) {
-           const videoId = data.items[0].id.videoId;
-           const videoTitle = data.items[0].snippet.title;
-           const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-           await sendMessage(chatId, `موزیک پیدا شد: ${videoTitle}\nلینک: ${videoUrl} گی تو لگبت`);
-         } else {
-           await sendMessage(chatId, 'موزیکی پیدا نشد! 😔 یه چیز دیگه امتحان کن. گی تو لگبت');
-         }
-       } catch (e) {
-         await sendMessage(chatId, 'خطایی پیش اومد! بعداً دوباره امتحان کن. گی تو لگبت');
-       }
-     }
+      // دستور /mute (باید ریپلای باشه)
+      if (text.startsWith('/mute') && replyTo) {
+        if (await isAdmin(chatId, userId)) {
+          const targetUserId = replyTo.from.id;
+          const targetUsername = replyTo.from.username || 'ناشناس';
+          if (await muteUser(chatId, targetUserId)) {
+            await sendMessage(chatId, `@${targetUsername} خفه ${getRandomInsult()}`);
+          } else {
+            await sendMessage(chatId, `نشد خفه اش کنم، شاید خودم دسترسی ندارم یا کاربر ادمینه! ${getRandomInsult()}`);
+          }
+        } else {
+          await sendMessage(chatId, `تو ادمین نیستی بچه کونی که ساکت کنی! ${getRandomInsult()}`);
+        }
+        return new Response('OK', { status: 200 });
+      }
 
-     async function isAdmin(chatId, userId) {
-       const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/getChatAdministrators?chat_id=${chatId}`;
-       const response = await fetch(url);
-       const admins = await response.json();
-       return admins.ok && admins.result.some(admin => admin.user.id === userId);
-     }
+      // دستور /unmute (باید ریپلای باشه)
+      if (text.startsWith('/unmute') && replyTo) {
+        if (await isAdmin(chatId, userId)) {
+          const targetUserId = replyTo.from.id;
+          const targetUsername = replyTo.from.username || 'ناشناس';
+          if (await unmuteUser(chatId, targetUserId)) {
+            await sendMessage(chatId, `@${targetUsername} گو بخور ${getRandomInsult()}`);
+          } else {
+            await sendMessage(chatId, `نشد گو بدم، شاید خودم دسترسی ندارم! ${getRandomInsult()}`);
+          }
+        } else {
+          await sendMessage(chatId, `تو ادمین نیستی که گو بدی! ${getRandomInsult()}`);
+        }
+        return new Response('OK', { status: 200 });
+      }
 
-     async function getUserIdFromMention(chatId, mention) {
-       if (mention.startsWith('@')) {
-         mention = mention.slice(1);
-       }
-       try {
-         const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/getChatMember?chat_id=${chatId}&user_id=${mention}`;
-         const response = await fetch(url);
-         const member = await response.json();
-         return member.ok ? member.result.user.id : null;
-       } catch (e) {
-         return null;
-       }
-     }
+      // اگر تگ شد (@AntiObiBot)، فحش بده
+      if (isMentioned) {
+        await sendMessage(chatId, `@${username} ${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
 
-     async function restrictChatMember(chatId, userId, untilDate) {
-       const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/restrictChatMember`;
-       await fetch(url, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-           chat_id: chatId,
-           user_id: userId,
-           permissions: { can_send_messages: false },
-           until_date: untilDate,
-         }),
-       });
-     }
+      // اگر ریپلای به ربات، فحش بده
+      if (isRepliedToBot) {
+        await sendMessage(chatId, `@${username} ${getRandomInsult()}`);
+        return new Response('OK', { status: 200 });
+      }
+    }
+  }
+  return new Response('OK', { status: 200 });
+}
