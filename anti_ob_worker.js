@@ -1,6 +1,6 @@
 const TELEGRAM_API = 'https://api.telegram.org/bot';
-const BOT_TOKEN = '8436981924:AAHvxRo0FYQdx9nrctGaDDF7pw_89l9vhpE'; // توکن ربات
-const WEBHOOK_URL = 'https://anti-obi-bot.amirrezamaleki1185.workers.dev'; // URL کلادفلر ورکر
+const BOT_TOKEN = ''; // توکن ربات
+const WEBHOOK_URL = ''; // URL کلادفلر ورکر
 const BOT_ID = 8436981924; // ID ربات از توکن
 
 // آرایه فحش‌های رندوم
@@ -327,3 +327,4 @@ async function handleRequest(request) {
   }
   return new Response('OK', { status: 200 });
 }
+
